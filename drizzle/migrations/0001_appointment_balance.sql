@@ -1,0 +1,2 @@
+ALTER TABLE public.appointments ADD COLUMN balance numeric(10,2) GENERATED ALWAYS AS (price - amount_paid) STORED;
+CREATE INDEX appointments_balance_idx ON public.appointments(user_id, status, balance);
