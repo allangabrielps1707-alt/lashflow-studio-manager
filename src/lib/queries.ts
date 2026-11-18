@@ -31,7 +31,7 @@ export const profileQuery = queryOptions({
       profile = check(
         await supabase
           .from("profiles")
-          .insert({ id: user.id, full_name: user.user_metadata?.full_name ?? null })
+          .insert({ id: user.id, full_name: (user.user_metadata?.["full_name"] as string | undefined) ?? null })
           .select("*")
           .single(),
       );

@@ -147,7 +147,7 @@ export function maintenanceDue(
 /** Whether a birthday (yyyy-MM-dd) falls within the next `days` days, including today. */
 export function birthdayWithin(birthday: string | null, today: Date, days = 7): number | null {
   if (!birthday) return null;
-  const [, m, d] = birthday.split("-").map(Number);
+  const [, m = 1, d = 1] = birthday.split("-").map(Number);
   const t0 = startOfDay(today);
   let next = new Date(t0.getFullYear(), m - 1, d);
   if (next < t0) next = new Date(t0.getFullYear() + 1, m - 1, d);

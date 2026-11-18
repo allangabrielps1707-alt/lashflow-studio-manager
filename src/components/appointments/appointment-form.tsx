@@ -34,7 +34,7 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   editing?: Appointment | null;
-  defaults?: AppointmentDefaults;
+  defaults?: AppointmentDefaults | undefined;
 }
 
 const NONE = "__none__";
@@ -138,8 +138,14 @@ export function AppointmentForm({ open, onOpenChange, editing, defaults }: Props
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     const name = newClient ? search.trim() : client?.name;
-    if (!name) return toast.error("Selecione ou cadastre a cliente");
-    if (!procedureName.trim()) return toast.error("Informe o procedimento");
+    if (!name) {
+      toast.error("Selecione ou cadastre a cliente");
+      return;
+    }
+    if (!procedureName.trim()) {
+      toast.error("Informe o procedimento");
+      return;
+    }
     setSaving(true);
     try {
       let clientId = client?.id;

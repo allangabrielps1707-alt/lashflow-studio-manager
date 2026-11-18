@@ -29,10 +29,14 @@ import { cn } from "@/lib/utils";
 type View = "dia" | "semana" | "mes";
 
 export const Route = createFileRoute("/_authenticated/agenda")({
-  validateSearch: (s: Record<string, unknown>): { view?: View; data?: string } => ({
-    view: s.view === "dia" || s.view === "semana" || s.view === "mes" ? s.view : undefined,
-    data: typeof s.data === "string" && /^\d{4}-\d{2}-\d{2}$/.test(s.data) ? s.data : undefined,
-  }),
+  validateSearch: (s: Record<string, unknown>): { view?: View | undefined; data?: string | undefined } => {
+    const v = s["view"];
+    const d = s["data"];
+    return {
+      view: v === "dia" || v === "semana" || v === "mes" ? v : undefined,
+      data: typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d) ? d : undefined,
+    };
+  },
   head: () => ({
     meta: [
       { title: "Agenda — Lash Studio" },
