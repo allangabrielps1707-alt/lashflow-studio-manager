@@ -28,3 +28,8 @@ use the editor.
   own key and store it in Secrets.
 - **Secrets.** Lovable manages them. Do not put secret values in the repo.
 <!-- LOVABLE:END -->
+
+## Project rules
+
+- Business rules (balance, overlap, maintenance, birthdays) live as pure functions in `src/lib/business.ts` with tests in `src/lib/business.test.ts`; pages only call them, so rules stay testable.
+- Backups/CSV exports run in the browser with the signed-in user's session (RLS-scoped), so no server code or admin key is needed.

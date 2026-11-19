@@ -33,8 +33,14 @@ export function PhotoGallery({ clientId, appointments }: { clientId: string; app
 
   function pick(f: File | undefined) {
     if (!f) return;
-    if (!f.type.startsWith("image/")) return toast.error("Escolha uma imagem");
-    if (f.size > 10 * 1024 * 1024) return toast.error("A foto deve ter até 10 MB");
+    if (!f.type.startsWith("image/")) {
+      toast.error("Escolha uma imagem");
+      return;
+    }
+    if (f.size > 10 * 1024 * 1024) {
+      toast.error("A foto deve ter até 10 MB");
+      return;
+    }
     setFile(f);
     setCaption("");
     setApptId(concluded[0]?.id ?? NONE);
