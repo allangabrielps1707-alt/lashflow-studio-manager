@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { toCsv } from "./backup";
-import { balanceDue, birthdayWithin, findOverlap, maintenanceDue } from "./business";
+import { balanceDue, birthdayWithin, findOverlap, maintenanceDue, pendingReceivable } from "./business";
 import { normalizePhone, renderTemplate, whatsappLink } from "./whatsapp";
 
 describe("WhatsApp", () => {
@@ -25,6 +25,26 @@ describe("Saldo", () => {
   });
   it("never goes negative", () => {
     expect(balanceDue({ price: 100, amount_paid: 120 })).toBe(0);
+  });
+});
+
+describe("A receber do mês", () => {
+  const month = new Date(2026, 10, 1);
+  const nextMonth = new Date(2026, 11, 1);
+  const on = (day: number) => new Date(2026, 10, day, 13).toISOString();
+  const rows = [
+    { starts_at: on(10), status: "concluido", price: 180, amount_paid: 50 },
+    { starts_at: on(12), status: "agendado", price: 220, amount_paid: 0 },
+    { starts_at: on(15), status: "cancelado", price: 150, amount_paid: 0 },
+    { starts_at: on(16), status: "falta", price: 100, amount_paid: 0 },
+    { starts_at: on(18), status: "concluido", price: 100, amount_paid: 100 },
+    { starts_at: new Date(2026, 11, 2, 13).toISOString(), status: "concluido", price: 300, amount_paid: 0 },
+  ];
+  it("sums only what is still open in the month", () => {
+    expect(pendingReceivable(rows, month, nextMonth)).toEqual({ total: 350, count: 2 });
+  });
+  it("is zero when nothing in the month is open", () => {
+    expect(pendingReceivable(rows.slice(4), month, nextMonth)).toEqual({ total: 0, count: 0 });
   });
 });
 

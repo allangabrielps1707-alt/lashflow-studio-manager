@@ -67,6 +67,30 @@ export function balanceDue(a: { price: number; amount_paid: number }): number {
   return Math.max(0, Math.round((Number(a.price) - Number(a.amount_paid)) * 100) / 100);
 }
 
+/**
+ * Money still to come in from appointments inside a period: every appointment that
+ * started between `from` (inclusive) and `to` (exclusive) and still has a balance open.
+ * Cancelled and no-show appointments are not owed, and rows already fully paid are skipped.
+ */
+export function pendingReceivable<T extends { starts_at: string; status: string; price: number; amount_paid: number }>(
+  rows: T[],
+  from: Date,
+  to: Date,
+): { total: number; count: number } {
+  let total = 0;
+  let count = 0;
+  for (const a of rows) {
+    const when = new Date(a.starts_at);
+    if (when < from || when >= to) continue;
+    if (a.status === "cancelado" || a.status === "falta") continue;
+    const due = balanceDue(a);
+    if (due <= 0) continue;
+    total += due;
+    count++;
+  }
+  return { total: Math.round(total * 100) / 100, count };
+}
+
 export interface TimedItem {
   id: string;
   starts_at: string;

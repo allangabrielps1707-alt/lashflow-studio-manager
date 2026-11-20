@@ -8,11 +8,10 @@ import { AppointmentRow } from "@/components/appointments/appointment-row";
 import { useAppointments } from "@/components/appointments/provider";
 import { Button } from "@/components/ui/button";
 import { useReminders } from "@/hooks/use-reminders";
-import { balanceDue } from "@/lib/business";
+import { pendingReceivable } from "@/lib/business";
 import { capitalize, fmt, fmtDayLong, money } from "@/lib/format";
 import {
   appointmentsRangeQuery,
-  pendingPaymentsQuery,
   profileQuery,
   transactionsRangeQuery,
 } from "@/lib/queries";
@@ -46,7 +45,7 @@ export const Route = createFileRoute("/_authenticated/painel")({
       queryClient.ensureQueryData(appointmentsRangeQuery(r.today, r.tomorrow)),
       queryClient.ensureQueryData(appointmentsRangeQuery(r.tomorrow, r.weekEnd)),
       queryClient.ensureQueryData(transactionsRangeQuery(r.month, r.nextMonth)),
-      queryClient.ensureQueryData(pendingPaymentsQuery),
+      queryClient.ensureQueryData(appointmentsRangeQuery(r.month, r.nextMonth)),
     ]);
   },
   component: Dashboard,
@@ -59,14 +58,14 @@ function Dashboard() {
   const { data: today } = useSuspenseQuery(appointmentsRangeQuery(r.today, r.tomorrow));
   const { data: upcoming } = useSuspenseQuery(appointmentsRangeQuery(r.tomorrow, r.weekEnd));
   const { data: monthTx } = useSuspenseQuery(transactionsRangeQuery(r.month, r.nextMonth));
-  const { data: pending } = useSuspenseQuery(pendingPaymentsQuery);
+  const { data: monthAppts } = useSuspenseQuery(appointmentsRangeQuery(r.month, r.nextMonth));
   const reminders = useReminders();
 
   const activeToday = today.filter((a) => a.status !== "cancelado");
   const todayExpected = activeToday.filter((a) => a.status !== "falta").reduce((s, a) => s + Number(a.price), 0);
   const income = monthTx.filter((t) => t.type === "receita").reduce((s, t) => s + Number(t.amount), 0);
   const expense = monthTx.filter((t) => t.type === "despesa").reduce((s, t) => s + Number(t.amount), 0);
-  const receivable = pending.reduce((s, a) => s + balanceDue(a), 0);
+  const receivable = pendingReceivable(monthAppts, r.month, r.nextMonth);
   const nextOnes = upcoming.filter((a) => a.status === "agendado" || a.status === "confirmado").slice(0, 5);
 
   const hour = new Date().getHours();
@@ -92,7 +91,7 @@ function Dashboard() {
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <StatCard label="Hoje" value={activeToday.length} hint={`${money(todayExpected)} previstos`} icon={CalendarDays} />
         <StatCard label="Faturamento do mês" value={money(income)} hint={`Lucro ${money(income - expense)}`} icon={TrendingUp} tone="gold" />
-        <StatCard label="A receber" value={money(receivable)} hint={`${pending.length} pendente(s)`} icon={HandCoins} />
+        <StatCard label="A receber" value={money(receivable.total)} hint={`${receivable.count} pendente(s) no mês`} icon={HandCoins} />
         <StatCard label="Lembretes" value={reminders.total} hint="ver todos" icon={Bell} />
       </div>
 

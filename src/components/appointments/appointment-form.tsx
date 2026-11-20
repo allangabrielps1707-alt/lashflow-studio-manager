@@ -114,9 +114,10 @@ export function AppointmentForm({ open, onOpenChange, editing, defaults }: Props
     return findOverlap(dayAppointments, new Date(`${date}T${time}:00`), Number(duration) || 0, editing?.id);
   }, [dayAppointments, date, time, duration, editing?.id]);
 
+  // the client list only appears once there is something to search for
   const matches = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return clients.slice(0, 6);
+    if (q.length < 2) return [];
     const digits = q.replace(/\D/g, "");
     return clients
       .filter((c) => c.name.toLowerCase().includes(q) || (digits && c.phone?.replace(/\D/g, "").includes(digits)))
