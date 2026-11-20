@@ -4,4 +4,4 @@
 - [x] Páginas: Clientes (lista + ficha com histórico e galeria), Procedimentos, Financeiro, Relatórios, Lembretes, Ajustes (mensagens, notificações, backup, sair), Mais
 - [x] Testes das regras (WhatsApp, saldo, manutenção, conflito de horário)
 - [x] Verificação completa logada
-- [ ] Ajustes pedidos: busca de cliente sem lista de nomes + "A receber" do painel somando pendências do mês
+- [x] Ajustes pedidos: busca de cliente sem lista de nomes + "A receber" do painel somando pendências do mês
