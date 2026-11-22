@@ -6,6 +6,7 @@ import {
   CalendarDays,
   Ellipsis,
   Home,
+  Package,
   Plus,
   Settings,
   Sparkles,
@@ -26,12 +27,13 @@ const NAV = [
   { to: "/clientes", label: "Clientes", icon: Users },
   { to: "/financeiro", label: "Financeiro", icon: Wallet },
   { to: "/procedimentos", label: "Procedimentos", icon: Sparkles },
+  { to: "/estoque", label: "Estoque", icon: Package },
   { to: "/relatorios", label: "Relatórios", icon: BarChart3 },
   { to: "/lembretes", label: "Lembretes", icon: Bell },
   { to: "/ajustes", label: "Ajustes", icon: Settings },
 ] as const;
 
-const MOBILE_MORE = ["/financeiro", "/procedimentos", "/relatorios", "/lembretes", "/ajustes", "/mais"];
+const MOBILE_MORE = ["/financeiro", "/procedimentos", "/estoque", "/relatorios", "/lembretes", "/ajustes", "/mais"];
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { pathname } = useLocation();

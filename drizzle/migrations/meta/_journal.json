@@ -15,6 +15,27 @@
       "when": 1794881131883,
       "tag": "0001_appointment_balance",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1795312017879,
+      "tag": "0002_create_stock",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1795312046290,
+      "tag": "0003_stock_entry_expense",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1795312198239,
+      "tag": "0004_stock_keep_expense_on_product_delete",
+      "breakpoints": true
     }
   ]
 }

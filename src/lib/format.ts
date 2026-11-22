@@ -47,3 +47,6 @@ export function initials(name: string): string {
 export function capitalize(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
+
+const qty = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 3 });
+export const fmtQty = (v: number | string | null | undefined) => qty.format(Number(v ?? 0));

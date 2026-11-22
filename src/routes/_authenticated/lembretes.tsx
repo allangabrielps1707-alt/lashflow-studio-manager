@@ -1,16 +1,17 @@
 import type { ReactNode } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { BellRing, Cake, CalendarCheck, CalendarClock, HandCoins, History, PartyPopper, Repeat } from "lucide-react";
+import { BellRing, Cake, CalendarCheck, CalendarClock, CalendarX, HandCoins, History, Package, PartyPopper, Repeat } from "lucide-react";
 
 import { EmptyState, PageHeader, PageLoader, Section } from "@/components/app/page";
 import { WhatsAppButton } from "@/components/app/whatsapp-button";
 import { AppointmentRow } from "@/components/appointments/appointment-row";
 import { useAppointments } from "@/components/appointments/provider";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useReminders } from "@/hooks/use-reminders";
 import { balanceDue } from "@/lib/business";
-import { fmt, fmtDate, money } from "@/lib/format";
+import { fmt, fmtDate, fmtQty, money } from "@/lib/format";
 import { buildMessage } from "@/lib/messages";
 import { profileQuery } from "@/lib/queries";
 import { firstName } from "@/lib/whatsapp";
@@ -45,7 +46,7 @@ function RemindersPage() {
         <EmptyState
           icon={PartyPopper}
           title="Tudo em dia!"
-          text="Nenhuma confirmação, manutenção ou pagamento pendente no momento."
+          text="Nenhuma confirmação, manutenção, pagamento ou produto pendente no momento."
         />
       )}
 
@@ -165,6 +166,34 @@ function RemindersPage() {
         </Group>
       )}
 
+      {r.lowStock.length > 0 && (
+        <Group icon={Package} title="Estoque baixo" hint="Produtos que chegaram na quantidade mínima.">
+          {r.lowStock.map((p) => (
+            <StockRow
+              key={p.id}
+              name={p.name}
+              detail={`${fmtQty(p.quantity)} ${p.unit} · mínimo ${fmtQty(p.min_quantity)}`}
+              tone={Number(p.quantity) === 0 ? "danger" : "warning"}
+              label={Number(p.quantity) === 0 ? "Esgotado" : "Repor"}
+            />
+          ))}
+        </Group>
+      )}
+
+      {r.expiring.length > 0 && (
+        <Group icon={CalendarX} title="Validade" hint="Produtos vencidos ou que vencem nos próximos 30 dias.">
+          {r.expiring.map(({ product, inDays }) => (
+            <StockRow
+              key={product.id}
+              name={product.name}
+              detail={`Vence ${fmtDate(product.expires_on!)} · ${fmtQty(product.quantity)} ${product.unit}`}
+              tone={inDays < 0 ? "danger" : "warning"}
+              label={inDays < 0 ? "Vencido" : inDays === 0 ? "Vence hoje" : `${inDays} dia(s)`}
+            />
+          ))}
+        </Group>
+      )}
+
       {r.birthdays.length > 0 && (
         <Group icon={Cake} title="Aniversariantes da semana">
           {r.birthdays.map(({ client, inDays }) => (
@@ -224,6 +253,21 @@ function Group({
       {hint && <p className="-mt-2 mb-3 text-sm text-muted-foreground">{hint}</p>}
       <div className="grid gap-2">{children}</div>
     </Section>
+  );
+}
+
+function StockRow({ name, detail, tone, label }: { name: string; detail: string; tone: "danger" | "warning"; label: string }) {
+  return (
+    <Link
+      to="/estoque"
+      className="flex items-center gap-3 rounded-2xl border bg-card-gradient p-3.5 shadow-soft transition hover:border-primary/40"
+    >
+      <div className="min-w-0 flex-1">
+        <p className="truncate font-medium">{name}</p>
+        <p className="truncate text-sm text-muted-foreground">{detail}</p>
+      </div>
+      <Badge variant={tone}>{label}</Badge>
+    </Link>
   );
 }
 

@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { BarChart3, Bell, ChevronRight, Settings, Sparkles, Wallet } from "lucide-react";
+import { BarChart3, Bell, ChevronRight, Package, Settings, Sparkles, Wallet } from "lucide-react";
 
 import { PageHeader } from "@/components/app/page";
 import { useReminders } from "@/hooks/use-reminders";
@@ -8,7 +8,7 @@ export const Route = createFileRoute("/_authenticated/mais")({
   head: () => ({
     meta: [
       { title: "Mais — Lash Studio" },
-      { name: "description", content: "Atalhos para financeiro, procedimentos, relatórios, lembretes e ajustes." },
+      { name: "description", content: "Atalhos para financeiro, procedimentos, estoque, relatórios, lembretes e ajustes." },
       { property: "og:title", content: "Mais — Lash Studio" },
       { property: "og:description", content: "Atalhos para todas as áreas do seu estúdio." },
     ],
@@ -19,6 +19,7 @@ export const Route = createFileRoute("/_authenticated/mais")({
 const ITEMS = [
   { to: "/financeiro", label: "Financeiro", text: "Receitas, despesas e pendências", icon: Wallet },
   { to: "/procedimentos", label: "Procedimentos", text: "Serviços, modelos, preços e duração", icon: Sparkles },
+  { to: "/estoque", label: "Estoque", text: "Produtos, validade, entradas e saídas", icon: Package },
   { to: "/relatorios", label: "Relatórios", text: "Desempenho e faturamento", icon: BarChart3 },
   { to: "/lembretes", label: "Lembretes", text: "Confirmações, manutenções e aniversários", icon: Bell },
   { to: "/ajustes", label: "Ajustes", text: "Perfil, mensagens, avisos e backup", icon: Settings },

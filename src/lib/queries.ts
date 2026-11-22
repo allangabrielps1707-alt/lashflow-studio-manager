@@ -10,6 +10,8 @@ export type Transaction = Tables<"transactions">;
 export type Profile = Tables<"profiles">;
 export type ClientPhoto = Tables<"client_photos">;
 export type AppointmentEvent = Tables<"appointment_events">;
+export type Product = Tables<"products">;
+export type StockMovement = Tables<"stock_movements">;
 export type AppointmentWithClient = Appointment & {
   client: Pick<Client, "id" | "name" | "phone"> | null;
 };
@@ -181,6 +183,27 @@ export const clientPhotosQuery = (clientId: string) =>
     },
   });
 
+export const productsQuery = queryOptions({
+  queryKey: ["products"],
+  queryFn: async () =>
+    check(await supabase.from("products").select("*").order("name")) as Product[],
+});
+
+export const productMovementsQuery = (productId: string) =>
+  queryOptions({
+    queryKey: ["products", "movements", productId],
+    queryFn: async () =>
+      check(
+        await supabase
+          .from("stock_movements")
+          .select("*")
+          .eq("product_id", productId)
+          .order("occurred_on", { ascending: false })
+          .order("created_at", { ascending: false })
+          .limit(50),
+      ) as StockMovement[],
+  });
+
 /** Data changes ripple across dashboard, agenda, finance and reminders — refresh them all. */
 export function refreshData(qc: QueryClient) {
   return Promise.all([
@@ -188,6 +211,7 @@ export function refreshData(qc: QueryClient) {
     qc.invalidateQueries({ queryKey: ["transactions"] }),
     qc.invalidateQueries({ queryKey: ["clients"] }),
     qc.invalidateQueries({ queryKey: ["photos"] }),
+    qc.invalidateQueries({ queryKey: ["products"] }),
   ]);
 }
 

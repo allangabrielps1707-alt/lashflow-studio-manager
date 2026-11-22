@@ -5,3 +5,4 @@
 - [x] Testes das regras (WhatsApp, saldo, manutenção, conflito de horário)
 - [x] Verificação completa logada
 - [x] Ajustes pedidos: busca de cliente sem lista de nomes + "A receber" do painel somando pendências do mês
+- [ ] Aba Estoque: produtos (quantidade, validade, mínimo), entradas/saídas, lembretes de estoque baixo e validade, entrada com valor vira despesa "Material"

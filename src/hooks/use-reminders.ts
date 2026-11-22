@@ -2,14 +2,16 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { addDays, isSameDay, startOfDay } from "date-fns";
 
-import { birthdayWithin, maintenanceDue, type MaintenanceDue } from "@/lib/business";
+import { birthdayWithin, maintenanceDue, stockAlerts, type MaintenanceDue } from "@/lib/business";
 import {
   clientsQuery,
   pendingPaymentsQuery,
   proceduresQuery,
+  productsQuery,
   visitsQuery,
   type AppointmentWithClient,
   type Client,
+  type Product,
 } from "@/lib/queries";
 
 export interface Reminders {
@@ -19,6 +21,8 @@ export interface Reminders {
   maintenance: (MaintenanceDue & { client: Client })[];
   pending: AppointmentWithClient[];
   birthdays: { client: Client; inDays: number }[];
+  lowStock: Product[];
+  expiring: { product: Product; inDays: number }[];
   total: number;
   ready: boolean;
 }
@@ -28,6 +32,7 @@ export function useReminders(): Reminders {
   const clients = useQuery(clientsQuery);
   const procedures = useQuery(proceduresQuery);
   const pending = useQuery(pendingPaymentsQuery);
+  const products = useQuery(productsQuery);
 
   return useMemo(() => {
     const now = new Date();
@@ -58,6 +63,7 @@ export function useReminders(): Reminders {
       .filter((b): b is { client: Client; inDays: number } => b.inDays !== null)
       .sort((a, b) => a.inDays - b.inDays);
     const pend = pending.data ?? [];
+    const stock = stockAlerts(products.data ?? [], now);
 
     return {
       toConfirm,
@@ -66,8 +72,17 @@ export function useReminders(): Reminders {
       maintenance,
       pending: pend,
       birthdays,
-      total: toConfirm.length + unresolved.length + maintenance.length + pend.length + birthdays.length,
-      ready: !!visits.data && !!clients.data && !!procedures.data && !!pending.data,
+      lowStock: stock.low,
+      expiring: stock.expiring,
+      total:
+        toConfirm.length +
+        unresolved.length +
+        maintenance.length +
+        pend.length +
+        birthdays.length +
+        stock.low.length +
+        stock.expiring.length,
+      ready: !!visits.data && !!clients.data && !!procedures.data && !!pending.data && !!products.data,
     };
-  }, [visits.data, clients.data, procedures.data, pending.data]);
+  }, [visits.data, clients.data, procedures.data, pending.data, products.data]);
 }

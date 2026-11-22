@@ -207,3 +207,51 @@ export function attendanceStats(
     noShowRate: total ? noShow / total : 0,
   };
 }
+
+// ---------- Estoque ----------
+
+export const PRODUCT_CATEGORIES = ["Fios", "Cola", "Removedor", "Primer", "Pinças", "Descartáveis", "Higiene", "Outros"];
+export const PRODUCT_UNITS = ["un", "caixa", "pacote", "frasco", "ml", "g", "par"];
+
+/** How many days before the expiry date the app starts warning. */
+export const EXPIRY_WARNING_DAYS = 30;
+
+export interface StockItem {
+  quantity: number;
+  min_quantity: number;
+  expires_on: string | null;
+}
+
+/** A product is low once it reaches its minimum. A minimum of 0 means "don't watch this one". */
+export function isLowStock(p: Pick<StockItem, "quantity" | "min_quantity">): boolean {
+  const min = Number(p.min_quantity);
+  return min > 0 && Number(p.quantity) <= min;
+}
+
+/** Days until the expiry date (negative once expired), or null when the product has no expiry. */
+export function daysUntilExpiry(expiresOn: string | null, today: Date): number | null {
+  if (!expiresOn) return null;
+  const [y = 1970, m = 1, d = 1] = expiresOn.split("-").map(Number);
+  return differenceInCalendarDays(new Date(y, m - 1, d), startOfDay(today));
+}
+
+/** Expired or within the warning window — only products still in stock matter. */
+export function isExpiringSoon(p: StockItem, today: Date, days = EXPIRY_WARNING_DAYS): boolean {
+  const left = daysUntilExpiry(p.expires_on, today);
+  return left !== null && left <= days && Number(p.quantity) > 0;
+}
+
+export function stockAlerts<T extends StockItem>(products: T[], today: Date) {
+  const low = products.filter(isLowStock);
+  const expiring = products
+    .filter((p) => isExpiringSoon(p, today))
+    .map((p) => ({ product: p, inDays: daysUntilExpiry(p.expires_on, today)! }))
+    .sort((a, b) => a.inDays - b.inDays);
+  return { low, expiring };
+}
+
+/** Quantity after a movement; null when an exit would take more than what is in stock. */
+export function applyMovement(current: number, type: "entrada" | "saida", qty: number): number | null {
+  const next = type === "entrada" ? Number(current) + qty : Number(current) - qty;
+  return next < 0 ? null : Math.round(next * 1000) / 1000;
+}

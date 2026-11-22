@@ -1,7 +1,17 @@
 import { describe, expect, it } from "vitest";
 
 import { toCsv } from "./backup";
-import { balanceDue, birthdayWithin, findOverlap, maintenanceDue, pendingReceivable } from "./business";
+import {
+  applyMovement,
+  balanceDue,
+  birthdayWithin,
+  findOverlap,
+  isExpiringSoon,
+  isLowStock,
+  maintenanceDue,
+  pendingReceivable,
+  stockAlerts,
+} from "./business";
 import { normalizePhone, renderTemplate, whatsappLink } from "./whatsapp";
 
 describe("WhatsApp", () => {
@@ -97,5 +107,40 @@ describe("Backup CSV", () => {
   it("separates with semicolons and quotes values containing them", () => {
     const csv = toCsv([{ a: "x;y", b: 1 }], [{ key: "a", label: "A" }, { key: "b", label: "B" }]);
     expect(csv).toBe('\uFEFFA;B\r\n"x;y";1');
+  });
+});
+
+describe("Estoque", () => {
+  const today = new Date(2026, 10, 22);
+  it("warns when quantity reaches the minimum", () => {
+    expect(isLowStock({ quantity: 2, min_quantity: 2 })).toBe(true);
+  });
+  it("does not warn above the minimum", () => {
+    expect(isLowStock({ quantity: 3, min_quantity: 2 })).toBe(false);
+  });
+  it("does not watch products without a minimum", () => {
+    expect(isLowStock({ quantity: 0, min_quantity: 0 })).toBe(false);
+  });
+  it("warns 30 days before expiry", () => {
+    expect(isExpiringSoon({ quantity: 1, min_quantity: 0, expires_on: "2026-12-22" }, today)).toBe(true);
+  });
+  it("does not warn 31 days before expiry", () => {
+    expect(isExpiringSoon({ quantity: 1, min_quantity: 0, expires_on: "2026-12-23" }, today)).toBe(false);
+  });
+  it("lists expired products first", () => {
+    const { expiring } = stockAlerts(
+      [
+        { quantity: 1, min_quantity: 0, expires_on: "2026-12-01" },
+        { quantity: 1, min_quantity: 0, expires_on: "2026-11-20" },
+      ],
+      today,
+    );
+    expect(expiring.map((e) => e.inDays)).toEqual([-2, 9]);
+  });
+  it("blocks an exit larger than the stock", () => {
+    expect(applyMovement(3, "saida", 4)).toBeNull();
+  });
+  it("adds an entry to the stock", () => {
+    expect(applyMovement(3, "entrada", 2)).toBe(5);
   });
 });

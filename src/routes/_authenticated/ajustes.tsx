@@ -276,7 +276,7 @@ function BackupCard() {
 
   const fullBackup = () =>
     run("json", async () => {
-      const [profiles, clients, procedures, appointments, events, transactions, photos] = await Promise.all([
+      const [profiles, clients, procedures, appointments, events, transactions, photos, products, movements] = await Promise.all([
         supabase.from("profiles").select("*"),
         supabase.from("clients").select("*"),
         supabase.from("procedures").select("*"),
@@ -284,6 +284,8 @@ function BackupCard() {
         supabase.from("appointment_events").select("*"),
         supabase.from("transactions").select("*"),
         supabase.from("client_photos").select("*"),
+        supabase.from("products").select("*"),
+        supabase.from("stock_movements").select("*"),
       ]);
       const payload = {
         exported_at: new Date().toISOString(),
@@ -295,6 +297,8 @@ function BackupCard() {
         appointment_events: check(events),
         transactions: check(transactions),
         client_photos: check(photos),
+        products: check(products),
+        stock_movements: check(movements),
       };
       downloadFile(`backup-lash-${stamp()}.json`, JSON.stringify(payload, null, 2), "application/json");
     });
