@@ -22,7 +22,7 @@ import {
   isExpiringSoon,
   isLowStock,
 } from "@/lib/business";
-import { fmtDate, fmtQty, isoDay, money } from "@/lib/format";
+import { fmt, fmtDate, fmtQty, isoDay, money } from "@/lib/format";
 import { check, productMovementsQuery, productsQuery, type Product } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 
@@ -225,7 +225,7 @@ function ProductDetail({ product: p, onMove, onEdit }: { product: Product; onMov
       <div className="mt-5 grid grid-cols-3 gap-2">
         <StatCard label="Em estoque" value={`${fmtQty(p.quantity)} ${p.unit}`} tone="gold" />
         <StatCard label="Mínimo" value={Number(p.min_quantity) > 0 ? fmtQty(p.min_quantity) : "—"} />
-        <StatCard label="Validade" value={p.expires_on ? fmtDate(p.expires_on) : "—"} />
+        <StatCard label="Validade" value={p.expires_on ? fmt(p.expires_on, "dd/MM/yy") : "—"} />
       </div>
       <div className="mt-3 flex flex-wrap gap-1.5 empty:hidden">
         <StockBadges product={p} today={today} />
