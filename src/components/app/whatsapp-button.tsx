@@ -8,8 +8,15 @@ export function WhatsAppButton({
   phone,
   message,
   label = "WhatsApp",
+  onSent,
   ...props
-}: { phone: string | null | undefined; message?: string; label?: string } & Omit<ButtonProps, "onClick">) {
+}: {
+  phone: string | null | undefined;
+  message?: string;
+  label?: string;
+  /** Called once WhatsApp was opened, e.g. to tick the reminder off. */
+  onSent?: () => void;
+} & Omit<ButtonProps, "onClick">) {
   return (
     <Button
       type="button"
@@ -22,6 +29,7 @@ export function WhatsAppButton({
           return;
         }
         window.open(url, "_blank", "noopener");
+        onSent?.();
       }}
       {...props}
     >

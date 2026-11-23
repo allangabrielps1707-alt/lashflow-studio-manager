@@ -36,6 +36,13 @@
       "when": 1795312198239,
       "tag": "0004_stock_keep_expense_on_product_delete",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1795393425886,
+      "tag": "0005_reminder_logs_and_today_message",
+      "breakpoints": true
     }
   ]
 }

@@ -12,6 +12,7 @@ export type ClientPhoto = Tables<"client_photos">;
 export type AppointmentEvent = Tables<"appointment_events">;
 export type Product = Tables<"products">;
 export type StockMovement = Tables<"stock_movements">;
+export type ReminderLog = Tables<"reminder_logs">;
 export type AppointmentWithClient = Appointment & {
   client: Pick<Client, "id" | "name" | "phone"> | null;
 };
@@ -182,6 +183,18 @@ export const clientPhotosQuery = (clientId: string) =>
       return rows.map((r, i) => ({ ...r, url: data?.[i]?.signedUrl ?? "" }));
     },
   });
+
+/** Reminders already sent or dismissed in the last ~60 days. */
+export const reminderLogsQuery = queryOptions({
+  queryKey: ["reminder_logs"],
+  queryFn: async () => {
+    const since = new Date();
+    since.setDate(since.getDate() - 60);
+    return check(
+      await supabase.from("reminder_logs").select("appointment_id, kind").gte("done_at", since.toISOString()),
+    ) as Pick<ReminderLog, "appointment_id" | "kind">[];
+  },
+});
 
 export const productsQuery = queryOptions({
   queryKey: ["products"],

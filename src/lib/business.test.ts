@@ -5,12 +5,16 @@ import {
   applyMovement,
   balanceDue,
   birthdayWithin,
+  confirmationDue,
+  doneKey,
   findOverlap,
   isExpiringSoon,
   isLowStock,
   maintenanceDue,
   pendingReceivable,
   stockAlerts,
+  thanksDue,
+  todayDue,
 } from "./business";
 import { normalizePhone, renderTemplate, whatsappLink } from "./whatsapp";
 
@@ -74,26 +78,63 @@ describe("Conflito de horário", () => {
   });
 });
 
-describe("Manutenção", () => {
-  const today = new Date(2026, 4, 20, 10);
-  const visit = (starts: Date, status = "concluido") => ({
+describe("Convite para manutenção", () => {
+  const today = new Date(2026, 4, 21, 10);
+  const visit = (id: string, starts: Date, status = "concluido") => ({
+    id,
     client_id: "c1",
     starts_at: starts.toISOString(),
     status,
     procedure_id: "p1",
   });
+  const fifteen = () => 15;
   it("is due 15 days after the last completed visit", () => {
-    const due = maintenanceDue([visit(new Date(2026, 4, 6, 10))], { p1: 15 }, today);
-    expect(due).toHaveLength(1);
-    expect(due[0]!.daysUntil).toBe(1);
+    const due = maintenanceDue([visit("a1", new Date(2026, 4, 6, 10))], fifteen, today);
+    expect(due.map((d) => d.daysUntil)).toEqual([0]);
+  });
+  it("is not due 14 days after the visit", () => {
+    expect(maintenanceDue([visit("a1", new Date(2026, 4, 7, 10))], fifteen, today)).toHaveLength(0);
   });
   it("is not suggested when the client already has a future booking", () => {
     const due = maintenanceDue(
-      [visit(new Date(2026, 4, 6, 10)), visit(new Date(2026, 4, 22, 10), "agendado")],
-      { p1: 15 },
+      [visit("a1", new Date(2026, 4, 6, 10)), visit("a2", new Date(2026, 4, 22, 10), "agendado")],
+      fifteen,
       today,
     );
     expect(due).toHaveLength(0);
+  });
+  it("leaves the list once the invite was sent", () => {
+    const due = maintenanceDue([visit("a1", new Date(2026, 4, 6, 10))], fifteen, today, new Set([doneKey("a1", "manutencao")]));
+    expect(due).toHaveLength(0);
+  });
+});
+
+describe("Lembretes de atendimento", () => {
+  const now = new Date(2026, 4, 20, 9, 0);
+  const appt = (id: string, starts: Date, status = "agendado") => ({ id, starts_at: starts.toISOString(), status });
+  it("asks to confirm an appointment 2 days ahead", () => {
+    expect(confirmationDue([appt("a", new Date(2026, 4, 22, 14))], now, new Set())).toHaveLength(1);
+  });
+  it("does not ask to confirm 3 days ahead", () => {
+    expect(confirmationDue([appt("a", new Date(2026, 4, 23, 14))], now, new Set())).toHaveLength(0);
+  });
+  it("does not ask to confirm an already confirmed appointment", () => {
+    expect(confirmationDue([appt("a", new Date(2026, 4, 22, 14), "confirmado")], now, new Set())).toHaveLength(0);
+  });
+  it("drops the confirmation once it was sent", () => {
+    expect(confirmationDue([appt("a", new Date(2026, 4, 22, 14))], now, new Set([doneKey("a", "confirmacao")]))).toHaveLength(0);
+  });
+  it("reminds on the day of the appointment", () => {
+    expect(todayDue([appt("a", new Date(2026, 4, 20, 14), "confirmado")], now, new Set())).toHaveLength(1);
+  });
+  it("does not remind on the day for tomorrow's appointment", () => {
+    expect(todayDue([appt("a", new Date(2026, 4, 21, 14))], now, new Set())).toHaveLength(0);
+  });
+  it("asks to thank after a completed visit", () => {
+    expect(thanksDue([appt("a", new Date(2026, 4, 19, 14), "concluido")], now, new Set())).toHaveLength(1);
+  });
+  it("does not ask to thank before the visit is completed", () => {
+    expect(thanksDue([appt("a", new Date(2026, 4, 19, 14), "agendado")], now, new Set())).toHaveLength(0);
   });
 });
 

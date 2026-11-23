@@ -320,6 +320,7 @@ export type Database = {
           msg_maintenance: string
           msg_reminder: string
           msg_thanks: string
+          msg_today: string
           phone: string | null
           updated_at: string
         }
@@ -332,6 +333,7 @@ export type Database = {
           msg_maintenance?: string
           msg_reminder?: string
           msg_thanks?: string
+          msg_today?: string
           phone?: string | null
           updated_at?: string
         }
@@ -344,10 +346,43 @@ export type Database = {
           msg_maintenance?: string
           msg_reminder?: string
           msg_thanks?: string
+          msg_today?: string
           phone?: string | null
           updated_at?: string
         }
         Relationships: []
+      }
+      reminder_logs: {
+        Row: {
+          appointment_id: string
+          done_at: string
+          id: string
+          kind: string
+          user_id: string
+        }
+        Insert: {
+          appointment_id: string
+          done_at?: string
+          id?: string
+          kind: string
+          user_id?: string
+        }
+        Update: {
+          appointment_id?: string
+          done_at?: string
+          id?: string
+          kind?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reminder_logs_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       stock_movements: {
         Row: {

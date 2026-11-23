@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { NOTIFY_KEY } from "@/hooks/use-browser-notifications";
 import { supabase } from "@/integrations/supabase/client";
 import { downloadFile, toCsv } from "@/lib/backup";
-import { STATUS_META, type AppointmentStatus } from "@/lib/business";
+import { REMINDER_RULES, STATUS_META, type AppointmentStatus } from "@/lib/business";
 import { fmt, isoDay } from "@/lib/format";
 import { buildMessage, type MessageKind } from "@/lib/messages";
 import { check, profileQuery, type Appointment, type Profile } from "@/lib/queries";
@@ -120,10 +120,11 @@ function ProfileCard({ profile, email }: { profile: Profile; email: string }) {
   );
 }
 
-const TEMPLATES: { kind: MessageKind; field: "msg_confirmation" | "msg_reminder" | "msg_maintenance" | "msg_thanks"; label: string }[] = [
-  { kind: "confirmation", field: "msg_confirmation", label: "Confirmação de horário" },
-  { kind: "reminder", field: "msg_reminder", label: "Lembrete da véspera" },
-  { kind: "maintenance", field: "msg_maintenance", label: "Convite para manutenção" },
+const TEMPLATES: { kind: MessageKind; field: "msg_confirmation" | "msg_today" | "msg_reminder" | "msg_maintenance" | "msg_thanks"; label: string; sameDay?: boolean }[] = [
+  { kind: "confirmation", field: "msg_confirmation", label: "Confirmação de horário (2 dias antes)" },
+  { kind: "today", field: "msg_today", label: "Lembrete do dia", sameDay: true },
+  ...(REMINDER_RULES.showEve ? [{ kind: "reminder" as const, field: "msg_reminder" as const, label: "Lembrete da véspera" }] : []),
+  { kind: "maintenance", field: "msg_maintenance", label: `Convite para manutenção (${REMINDER_RULES.maintenanceDays} dias depois)` },
   { kind: "thanks", field: "msg_thanks", label: "Agradecimento pós-atendimento" },
 ];
 
@@ -140,6 +141,8 @@ function MessagesCard({ profile }: { profile: Profile }) {
   const sampleStart = new Date();
   sampleStart.setDate(sampleStart.getDate() + 1);
   sampleStart.setHours(14, 0, 0, 0);
+  const sameDayStart = new Date(sampleStart);
+  sameDayStart.setDate(sameDayStart.getDate() - 1);
 
   async function onSave() {
     if (TEMPLATES.some((t) => !values[t.field].trim())) {
@@ -180,7 +183,7 @@ function MessagesCard({ profile }: { profile: Profile }) {
                 <span className="text-primary">Prévia: </span>
                 {buildMessage(t.kind, draft, {
                   clientName: "Maria Silva",
-                  startsAt: sampleStart.toISOString(),
+                  startsAt: (t.sameDay ? sameDayStart : sampleStart).toISOString(),
                   procedure: "Volume brasileiro",
                   price: 180,
                 })}

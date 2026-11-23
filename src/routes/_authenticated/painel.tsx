@@ -153,11 +153,16 @@ function Dashboard() {
         >
           <Bell className="h-5 w-5" />
           <div className="flex-1 text-sm">
-            {reminders.maintenance.length > 0 && <p>{reminders.maintenance.length} cliente(s) na hora da manutenção</p>}
+            {reminders.today.length > 0 && <p>{reminders.today.length} lembrete(s) do dia para enviar</p>}
             {reminders.toConfirm.length > 0 && <p>{reminders.toConfirm.length} horário(s) para confirmar</p>}
+            {reminders.thanks.length > 0 && <p>{reminders.thanks.length} agradecimento(s) para enviar</p>}
+            {reminders.maintenance.length > 0 && <p>{reminders.maintenance.length} convite(s) de manutenção</p>}
             {reminders.unresolved.length > 0 && <p>{reminders.unresolved.length} atendimento(s) sem baixa</p>}
             {reminders.birthdays.length > 0 && <p>{reminders.birthdays.length} aniversariante(s) da semana</p>}
             {reminders.pending.length > 0 && <p>{reminders.pending.length} pagamento(s) pendente(s)</p>}
+            {reminders.lowStock.length + reminders.expiring.length > 0 && (
+              <p>{reminders.lowStock.length + reminders.expiring.length} aviso(s) de estoque</p>
+            )}
           </div>
           <ChevronRight className="h-4 w-4" />
         </Link>

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { isToday } from "date-fns";
 import { Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -279,7 +280,7 @@ export function AppointmentDetail({
                       <WhatsAppButton size="sm" label="Confirmar horário" phone={appt.client?.phone}
                         message={buildMessage("confirmation", profile, { clientName: appt.client?.name ?? "", startsAt: appt.starts_at, procedure: appt.procedure_name })} />
                       <WhatsAppButton size="sm" label="Lembrete" phone={appt.client?.phone}
-                        message={buildMessage("reminder", profile, { clientName: appt.client?.name ?? "", startsAt: appt.starts_at, procedure: appt.procedure_name })} />
+                        message={buildMessage(isToday(new Date(appt.starts_at)) ? "today" : "reminder", profile, { clientName: appt.client?.name ?? "", startsAt: appt.starts_at, procedure: appt.procedure_name })} />
                     </>
                   )}
                   {appt.status === "concluido" && (

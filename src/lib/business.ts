@@ -1,4 +1,4 @@
-import { addDays, differenceInCalendarDays, startOfDay } from "date-fns";
+import { addDays, differenceInCalendarDays, isSameDay, startOfDay } from "date-fns";
 
 export type AppointmentStatus = "agendado" | "confirmado" | "concluido" | "cancelado" | "falta";
 
@@ -117,6 +117,7 @@ export function findOverlap<T extends TimedItem>(
 }
 
 export interface VisitRow {
+  id: string;
   client_id: string;
   starts_at: string;
   status: string;
@@ -125,22 +126,88 @@ export interface VisitRow {
 
 export interface MaintenanceDue {
   client_id: string;
+  appointment_id: string;
   lastVisit: string;
   dueDate: Date;
   daysUntil: number; // negative = overdue
 }
 
+/** The reminder kinds a lash designer works through, one per appointment each. */
+export type ReminderKind = "confirmacao" | "hoje" | "agradecimento" | "manutencao" | "vespera";
+
+/** Timing of the WhatsApp reminders, as the studio asked for them. */
+export const REMINDER_RULES = {
+  /** Confirmation reminder starts this many days before the appointment. */
+  confirmDaysBefore: 2,
+  /** Maintenance invite comes this many days after the last completed visit. */
+  maintenanceDays: 15,
+  /** When true, each procedure's own maintenance interval wins over `maintenanceDays`. */
+  maintenanceFromProcedure: false,
+  /** Thank-you reminders stay on the list this many days after the visit. */
+  thanksWindowDays: 7,
+  /** Maintenance invites stop showing this many days after they became due. */
+  maintenanceMaxOverdueDays: 30,
+  /** Extra reminder on the eve of the appointment. */
+  showEve: false,
+} as const;
+
+export const doneKey = (appointmentId: string, kind: ReminderKind) => `${appointmentId}:${kind}`;
+
+type ApptLike = { id: string; starts_at: string; status: string };
+
+/** Booked but not yet confirmed, starting within the next `confirmDaysBefore` days (not today). */
+export function confirmationDue<T extends ApptLike>(rows: T[], now: Date, done: Set<string>, daysBefore: number = REMINDER_RULES.confirmDaysBefore): T[] {
+  const t0 = startOfDay(now);
+  return rows.filter((a) => {
+    if (a.status !== "agendado" || done.has(doneKey(a.id, "confirmacao"))) return false;
+    const diff = differenceInCalendarDays(new Date(a.starts_at), t0);
+    return diff >= 1 && diff <= daysBefore;
+  });
+}
+
+/** Same-day reminder: today's active appointments that haven't started yet. */
+export function todayDue<T extends ApptLike>(rows: T[], now: Date, done: Set<string>): T[] {
+  return rows.filter((a) => {
+    if (a.status !== "agendado" && a.status !== "confirmado") return false;
+    if (done.has(doneKey(a.id, "hoje"))) return false;
+    const when = new Date(a.starts_at);
+    return isSameDay(when, now) && when > now;
+  });
+}
+
+/** Eve reminder: tomorrow's active appointments. */
+export function eveDue<T extends ApptLike>(rows: T[], now: Date, done: Set<string>): T[] {
+  const t0 = startOfDay(now);
+  return rows.filter(
+    (a) =>
+      (a.status === "agendado" || a.status === "confirmado") &&
+      !done.has(doneKey(a.id, "vespera")) &&
+      differenceInCalendarDays(new Date(a.starts_at), t0) === 1,
+  );
+}
+
+/** Thank-you reminder: completed visits from the last `windowDays` days not thanked yet. */
+export function thanksDue<T extends ApptLike>(rows: T[], now: Date, done: Set<string>, windowDays: number = REMINDER_RULES.thanksWindowDays): T[] {
+  const t0 = startOfDay(now);
+  return rows.filter((a) => {
+    if (a.status !== "concluido" || done.has(doneKey(a.id, "agradecimento"))) return false;
+    const when = new Date(a.starts_at);
+    if (when > now) return false;
+    return differenceInCalendarDays(t0, when) <= windowDays;
+  });
+}
+
 /**
- * A client is due for maintenance when her last completed visit + the procedure's
- * maintenance interval falls within `windowDays` from today (or is overdue up to
- * `maxOverdueDays`), and she has no upcoming active appointment.
+ * A client gets a maintenance invite once her last completed visit is `intervalFor(...)` days old
+ * (overdue up to `maxOverdueDays`), she has no upcoming active appointment, and the invite
+ * for that visit wasn't sent yet.
  */
 export function maintenanceDue(
   visits: VisitRow[],
-  intervals: Record<string, number | null | undefined>,
+  intervalFor: (procedureId: string | null) => number | null | undefined,
   today: Date,
-  windowDays = 3,
-  maxOverdueDays = 30,
+  done: Set<string> = new Set(),
+  maxOverdueDays: number = REMINDER_RULES.maintenanceMaxOverdueDays,
 ): MaintenanceDue[] {
   const t0 = startOfDay(today);
   const lastByClient = new Map<string, VisitRow>();
@@ -156,13 +223,13 @@ export function maintenanceDue(
   }
   const out: MaintenanceDue[] = [];
   for (const [clientId, v] of lastByClient) {
-    if (hasUpcoming.has(clientId)) continue;
-    const interval = v.procedure_id ? intervals[v.procedure_id] : null;
+    if (hasUpcoming.has(clientId) || done.has(doneKey(v.id, "manutencao"))) continue;
+    const interval = intervalFor(v.procedure_id);
     if (!interval) continue;
     const due = addDays(startOfDay(new Date(v.starts_at)), interval);
     const daysUntil = differenceInCalendarDays(due, t0);
-    if (daysUntil <= windowDays && daysUntil >= -maxOverdueDays) {
-      out.push({ client_id: clientId, lastVisit: v.starts_at, dueDate: due, daysUntil });
+    if (daysUntil <= 0 && daysUntil >= -maxOverdueDays) {
+      out.push({ client_id: clientId, appointment_id: v.id, lastVisit: v.starts_at, dueDate: due, daysUntil });
     }
   }
   return out.sort((a, b) => a.daysUntil - b.daysUntil);

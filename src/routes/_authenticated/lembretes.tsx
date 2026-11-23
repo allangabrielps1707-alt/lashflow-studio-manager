@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { BellRing, Cake, CalendarCheck, CalendarClock, CalendarX, HandCoins, History, Package, PartyPopper, Repeat } from "lucide-react";
+import { BellRing, Cake, CalendarCheck, CalendarClock, CalendarX, Check, HandCoins, Heart, History, Package, PartyPopper, Repeat, Sun } from "lucide-react";
 
 import { EmptyState, PageHeader, PageLoader, Section } from "@/components/app/page";
 import { WhatsAppButton } from "@/components/app/whatsapp-button";
@@ -9,8 +9,8 @@ import { AppointmentRow } from "@/components/appointments/appointment-row";
 import { useAppointments } from "@/components/appointments/provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useReminders } from "@/hooks/use-reminders";
-import { balanceDue } from "@/lib/business";
+import { useMarkReminder, useReminders } from "@/hooks/use-reminders";
+import { REMINDER_RULES, balanceDue, type ReminderKind } from "@/lib/business";
 import { fmt, fmtDate, fmtQty, money } from "@/lib/format";
 import { buildMessage } from "@/lib/messages";
 import { profileQuery } from "@/lib/queries";
@@ -36,7 +36,7 @@ function RemindersPage() {
 
   if (!r.ready) return <PageLoader />;
 
-  const empty = r.total === 0 && r.tomorrow.length === 0;
+  const empty = r.total === 0;
 
   return (
     <div className="animate-rise">
@@ -46,7 +46,7 @@ function RemindersPage() {
         <EmptyState
           icon={PartyPopper}
           title="Tudo em dia!"
-          text="Nenhuma confirmação, manutenção, pagamento ou produto pendente no momento."
+          text="Nenhuma confirmação, lembrete, agradecimento, manutenção, pagamento ou produto pendente no momento."
         />
       )}
 
@@ -58,15 +58,40 @@ function RemindersPage() {
         </Group>
       )}
 
+      {r.today.length > 0 && (
+        <Group icon={Sun} title="Lembrete do dia" hint="Atendimentos de hoje — envie o lembrete para sua cliente.">
+          {r.today.map((a) => (
+            <WithAction
+              key={a.id}
+              row={<AppointmentRow appt={a} />}
+              action={
+                <ReminderActions
+                  appointmentId={a.id}
+                  kind="hoje"
+                  label="Lembrar"
+                  phone={a.client?.phone}
+                  message={buildMessage("today", p, {
+                    clientName: a.client?.name ?? "",
+                    startsAt: a.starts_at,
+                    procedure: a.procedure_name,
+                  })}
+                />
+              }
+            />
+          ))}
+        </Group>
+      )}
+
       {r.toConfirm.length > 0 && (
-        <Group icon={CalendarCheck} title="Confirmar presença" hint="Horários das próximas 48h ainda não confirmados.">
+        <Group icon={CalendarCheck} title="Confirmar horário" hint={`Atendimentos dos próximos ${REMINDER_RULES.confirmDaysBefore} dias ainda não confirmados.`}>
           {r.toConfirm.map((a) => (
             <WithAction
               key={a.id}
               row={<AppointmentRow appt={a} showDate={(d) => fmt(d, "EEE dd/MM")} />}
               action={
-                <WhatsAppButton
-                  size="sm"
+                <ReminderActions
+                  appointmentId={a.id}
+                  kind="confirmacao"
                   label="Confirmar"
                   phone={a.client?.phone}
                   message={buildMessage("confirmation", p, {
@@ -89,8 +114,9 @@ function RemindersPage() {
               key={a.id}
               row={<AppointmentRow appt={a} />}
               action={
-                <WhatsAppButton
-                  size="sm"
+                <ReminderActions
+                  appointmentId={a.id}
+                  kind="vespera"
                   label="Lembrar"
                   phone={a.client?.phone}
                   message={buildMessage("reminder", p, {
@@ -105,36 +131,52 @@ function RemindersPage() {
         </Group>
       )}
 
+      {r.thanks.length > 0 && (
+        <Group icon={Heart} title="Agradecimento" hint="Atendimentos concluídos — agradeça a visita da sua cliente.">
+          {r.thanks.map((a) => (
+            <WithAction
+              key={a.id}
+              row={<AppointmentRow appt={a} showDate={(d) => fmt(d, "dd/MM")} />}
+              action={
+                <ReminderActions
+                  appointmentId={a.id}
+                  kind="agradecimento"
+                  label="Agradecer"
+                  phone={a.client?.phone}
+                  message={buildMessage("thanks", p, { clientName: a.client?.name ?? "" })}
+                />
+              }
+            />
+          ))}
+        </Group>
+      )}
+
       {r.maintenance.length > 0 && (
-        <Group icon={Repeat} title="Hora da manutenção" hint="Clientes sem horário marcado e com manutenção vencendo.">
+        <Group icon={Repeat} title="Convite para manutenção" hint={`Clientes com ${REMINDER_RULES.maintenanceDays} dias ou mais desde o último atendimento e sem horário marcado.`}>
           {r.maintenance.map((m) => (
             <div key={m.client_id} className="rounded-2xl border bg-card-gradient p-3.5 shadow-soft">
-              <div className="flex items-center gap-3">
-                <div className="min-w-0 flex-1">
-                  <Link to="/clientes/$id" params={{ id: m.client_id }} className="truncate font-medium hover:text-primary">
-                    {m.client.name}
-                  </Link>
-                  <p className="text-sm text-muted-foreground">
-                    Última visita {fmtDate(m.lastVisit)} ·{" "}
-                    <span className={m.daysUntil < 0 ? "text-destructive" : "text-primary"}>
-                      {m.daysUntil < 0
-                        ? `atrasada ${Math.abs(m.daysUntil)} dia(s)`
-                        : m.daysUntil === 0
-                          ? "vence hoje"
-                          : `vence em ${m.daysUntil} dia(s)`}
-                    </span>
-                  </p>
-                </div>
+              <div className="min-w-0">
+                <Link to="/clientes/$id" params={{ id: m.client_id }} className="truncate font-medium hover:text-primary">
+                  {m.client.name}
+                </Link>
+                <p className="text-sm text-muted-foreground">
+                  Último atendimento {fmtDate(m.lastVisit)} ·{" "}
+                  <span className="text-primary">
+                    {m.daysUntil === 0 ? `${REMINDER_RULES.maintenanceDays} dias hoje` : `há ${REMINDER_RULES.maintenanceDays - m.daysUntil} dias`}
+                  </span>
+                </p>
               </div>
-              <div className="mt-3 flex gap-2">
-                <WhatsAppButton
-                  size="sm"
-                  phone={m.client.phone}
-                  message={buildMessage("maintenance", p, { clientName: m.client.name })}
-                />
+              <div className="mt-3 flex flex-wrap justify-end gap-2">
                 <Button size="sm" variant="glass" onClick={() => openNew({ clientId: m.client_id })}>
                   Agendar
                 </Button>
+                <ReminderActions
+                  appointmentId={m.appointment_id}
+                  kind="manutencao"
+                  label="Convidar"
+                  phone={m.client.phone}
+                  message={buildMessage("maintenance", p, { clientName: m.client.name })}
+                />
               </div>
             </div>
           ))}
@@ -268,6 +310,30 @@ function StockRow({ name, detail, tone, label }: { name: string; detail: string;
       </div>
       <Badge variant={tone}>{label}</Badge>
     </Link>
+  );
+}
+
+function ReminderActions({
+  appointmentId,
+  kind,
+  label,
+  phone,
+  message,
+}: {
+  appointmentId: string;
+  kind: ReminderKind;
+  label: string;
+  phone: string | null | undefined;
+  message: string;
+}) {
+  const mark = useMarkReminder();
+  return (
+    <div className="flex items-center gap-2">
+      <Button size="sm" variant="ghost" onClick={() => mark(appointmentId, kind)} aria-label="Marcar como feito">
+        <Check /> Feito
+      </Button>
+      <WhatsAppButton size="sm" label={label} phone={phone} message={message} onSent={() => mark(appointmentId, kind)} />
+    </div>
   );
 }
 
