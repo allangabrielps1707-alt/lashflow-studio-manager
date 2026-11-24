@@ -34,3 +34,4 @@ use the editor.
 - Business rules (balance, overlap, maintenance, birthdays) live as pure functions in `src/lib/business.ts` with tests in `src/lib/business.test.ts`; pages only call them, so rules stay testable.
 - Backups/CSV exports run in the browser with the signed-in user's session (RLS-scoped), so no server code or admin key is needed.
 - Stock quantity is kept by database triggers on `stock_movements` (entries add, exits subtract, paid entries create a linked expense); the app never writes `products.quantity` directly, so stock and finance stay consistent.
+- Appointment reminders are derived from appointments at read time (rules and timings in `REMINDER_RULES`, `src/lib/business.ts`); `reminder_logs` only records which (appointment, kind) was sent or dismissed, so no scheduled job is needed.
